@@ -1,0 +1,32 @@
+name: Build
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - run: ./build.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: papercloth-installer
+          path: build/papercloth-installer-*.jar
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jar="$(ls build/papercloth-installer-*.jar)"
+          test "$(basename "$jar")" = "papercloth-installer-${GITHUB_REF_NAME#v}.jar"
+          gh release create "$GITHUB_REF_NAME" "$jar" --title "PaperCloth Installer ${GITHUB_REF_NAME#v}" --generate-notes
