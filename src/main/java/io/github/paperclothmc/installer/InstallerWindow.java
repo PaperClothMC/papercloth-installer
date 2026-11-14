@@ -24,6 +24,7 @@ import java.awt.Insets;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -49,7 +50,8 @@ final class InstallerWindow {
 	private final JComboBox<Meta.MinecraftVersion> minecraft = new JComboBox<Meta.MinecraftVersion>();
 	private final JCheckBox snapshots = new JCheckBox("Show snapshots");
 	private final JComboBox<Meta.Release> release = new JComboBox<Meta.Release>();
-	private final JTextField location = new JTextField(new File(System.getProperty("user.home"), "papercloth-server").getPath(), 26);
+	private static final String LAST_LOCATION = "lastInstallLocation";
+	private final JTextField location = new JTextField(lastLocation(), 26);
 	private final JButton browse = new JButton("...");
 	private final JLabel status = new JLabel("Loading versions...", SwingConstants.CENTER);
 	private final JProgressBar progress = new JProgressBar();
@@ -293,6 +295,29 @@ final class InstallerWindow {
 
 	private void error(String message) {
 		JOptionPane.showMessageDialog(this.frame, message, "PaperCloth Installer", JOptionPane.ERROR_MESSAGE);
+	}
+
+	private static String lastLocation() {
+		String fallback = new File(System.getProperty("user.home"), "papercloth-server").getPath();
+
+		try {
+			return preferences().get(LAST_LOCATION, fallback);
+		} catch (RuntimeException e) {
+			return fallback;
+		}
+	}
+
+	private static void rememberLocation(File folder) {
+		try {
+			Preferences preferences = preferences();
+			preferences.put(LAST_LOCATION, folder.getAbsolutePath());
+			preferences.flush();
+		} catch (Exception ignored) {
+		}
+	}
+
+	private static Preferences preferences() {
+		return Preferences.userRoot().node("io/github/paperclothmc/installer");
 	}
 
 	private static String cause(Exception e) {
